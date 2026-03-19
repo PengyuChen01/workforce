@@ -65,6 +65,35 @@ Use "imperial" for US cities, "metric" for others.
 """,
     ),
     Skill(
+        id="translate",
+        name="Translate",
+        description="User wants to translate text between languages. E.g. translate to English, 翻译成中文, translate this sentence.",
+        has_action=True,
+        agent_url="http://localhost:8003",
+        system_prompt="""\
+You are a translation assistant. The user wants to translate text.
+Extract the following from the user's request:
+- text: the text to translate
+- target_lang: the target language code (EN, ZH, JA, KO, FR, DE, ES, PT, IT, RU, etc.)
+- source_lang: (optional) source language code, omit if unsure
+
+Language mapping:
+- English / 英文 / 英语 -> EN
+- Chinese / 中文 / 中文 -> ZH
+- Japanese / 日文 / 日语 -> JA
+- Korean / 韩文 / 韩语 -> KO
+- French / 法文 / 法语 -> FR
+- German / 德文 / 德语 -> DE
+- Spanish / 西班牙语 -> ES
+
+If no target language is specified, translate to English if the text is non-English,
+or translate to Chinese if the text is in English.
+
+You MUST respond in STRICT JSON format only (no markdown, no extra text):
+{{"text": "<text to translate>", "target_lang": "<lang code>", "source_lang": "<lang code or empty>"}}
+""",
+    ),
+    Skill(
         id="schedule_meeting",
         name="Schedule Meeting",
         description="User wants to schedule, book, or arrange a meeting or appointment.",
