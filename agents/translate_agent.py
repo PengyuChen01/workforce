@@ -63,17 +63,20 @@ async def _translate(text: str, target_lang: str, source_lang: str = "") -> dict
     if target_lang not in SUPPORTED_LANGS:
         return {"success": False, "detail": f"Unsupported target language: {target_lang}"}
 
-    params = {
-        "auth_key": api_key,
-        "text": text,
+    headers = {
+        "Authorization": f"DeepL-Auth-Key {api_key}",
+        "Content-Type": "application/json",
+    }
+    body = {
+        "text": [text],
         "target_lang": target_lang,
     }
     if source_lang:
-        params["source_lang"] = source_lang.upper()
+        body["source_lang"] = source_lang.upper()
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(DEEPL_API_URL, data=params)
+            resp = await client.post(DEEPL_API_URL, headers=headers, json=body)
             resp.raise_for_status()
             data = resp.json()
 
