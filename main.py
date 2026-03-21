@@ -32,6 +32,7 @@ app = FastAPI(title="Voice Agent MVP", version="0.2.0")
 
 class TextRequest(BaseModel):
     text: str
+    user_id: str = ""
 
 
 class AgentResponse(BaseModel):
@@ -74,7 +75,7 @@ async def text_endpoint(req: TextRequest):
         raise HTTPException(status_code=400, detail="Empty text.")
 
     logger.info("Text input: %s", req.text)
-    result = await process_message(req.text, channel="api")
+    result = await process_message(req.text, channel="api", user_id=req.user_id)
     return AgentResponse(**result)
 
 
@@ -94,7 +95,7 @@ async def webhook_endpoint(req: WebhookRequest):
         raise HTTPException(status_code=400, detail="Empty text.")
 
     logger.info("[%s] user=%s: %s", req.channel, req.user_id, req.text)
-    result = await process_message(req.text, channel=req.channel)
+    result = await process_message(req.text, channel=req.channel, user_id=req.user_id)
     return AgentResponse(**result)
 
 

@@ -41,8 +41,14 @@ async def skill_router(state: AgentState) -> dict:
 
     messages = [
         SystemMessage(content=_build_router_prompt()),
-        HumanMessage(content=transcript),
     ]
+
+    # Inject conversation history for context-aware routing
+    history = state.get("messages", [])
+    if history:
+        messages.extend(history)
+
+    messages.append(HumanMessage(content=transcript))
 
     response = await _llm.ainvoke(messages)
     text = response.content.strip()

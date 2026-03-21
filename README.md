@@ -22,6 +22,13 @@ User Voice/Text/Telegram/Webhook
               |
               +-- skill_executor -----> LLM extracts args & calls A2A agents
               |
+              +-- memory_extractor ---> LLM extracts user facts for LTM
+              |
+              v
+     Memory Layer (services/memory.py)
+       - Short-term: in-memory conversation history (per user)
+       - Long-term: JSON-persisted user facts & preferences
+              |
               v
      ElevenLabs TTS (services/tts.py)    <- optional
               |
@@ -39,7 +46,8 @@ workforce/
 │   ├── orchestrator.py            # StateGraph definition & compilation
 │   └── nodes/
 │       ├── skill_router.py        # LLM skill selection
-│       └── skill_executor.py      # LLM arg extraction + A2A calls
+│       ├── skill_executor.py      # LLM arg extraction + A2A calls
+│       └── memory_extractor.py    # LLM user fact extraction (LTM)
 ├── agents/
 │   ├── a2a_models.py              # Shared JSON-RPC request/response models
 │   ├── email_agent.py             # A2A Email Agent (port 8001, Resend)
@@ -49,12 +57,14 @@ workforce/
 │   └── registry.py                # Skill definitions & registry
 ├── services/
 │   ├── channel.py                 # Unified message processing interface
+│   ├── memory.py                  # Short-term & long-term memory services
 │   ├── stt.py                     # Whisper STT wrapper
 │   ├── tts.py                     # ElevenLabs TTS streaming wrapper
 │   ├── user_store.py              # User email storage
 │   └── telegram_bot.py            # Telegram bot with onboarding flow
 ├── data/
-│   └── users.json                 # Persisted user data
+│   ├── users.json                 # Persisted user data
+│   └── user_facts.json            # Long-term user facts (auto-generated)
 ├── .env.example
 └── requirements.txt
 ```
@@ -149,6 +159,34 @@ python3 -m services.telegram_bot
 | GET    | `/.well-known/agent.json` | A2A Agent Card |
 | POST   | `/a2a`                    | A2A JSON-RPC endpoint |
 | GET    | `/health`                 | Health check |
+
+## Memory System
+
+The agent has a two-tier memory system:
+
+**Short-term Memory (STM)** — In-memory per-user conversation history
+- Stores the last 20 turns (configurable) per user
+- Enables context-aware multi-turn conversations (e.g., "what did I just say?")
+- Injected into both skill_router and skill_executor for context understanding
+- Lost on process restart (by design)
+
+**Long-term Memory (LTM)** — JSON-persisted user facts
+- Stored in `data/user_facts.json`
+- After each conversation turn, `memory_extractor` uses LLM to identify user preferences/facts
+- Facts are injected into the skill_executor system prompt for personalized responses
+- Survives process restarts
+
+Pass `user_id` in requests to enable memory:
+```bash
+curl -X POST http://localhost:8000/text \
+  -H "Content-Type: application/json" \
+  -d '{"text": "我叫小明", "user_id": "test1"}'
+
+# Follow-up (STM remembers context):
+curl -X POST http://localhost:8000/text \
+  -H "Content-Type: application/json" \
+  -d '{"text": "我刚才说我叫什么？", "user_id": "test1"}'
+```
 
 ## Test with curl
 

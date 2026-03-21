@@ -19,6 +19,9 @@ class AgentState(TypedDict):
     # The user's email address (if known)
     user_email: str
 
+    # User identifier for memory
+    user_id: str
+
     # Source channel: "api" | "webhook" | "wechat"
     channel: str
 
