@@ -162,7 +162,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("[telegram] user=%s: %s", _username(update), user_text)
     await update.message.chat.send_action("typing")
 
-    result = await process_message(user_text, channel="telegram", user_email=user_email)
+    result = await process_message(user_text, channel="telegram", user_email=user_email, user_id=f"telegram_{uid}")
 
     reply = result.get("response_text", "Sorry, something went wrong.")
     skill = result.get("selected_skill", "")
@@ -194,7 +194,7 @@ async def voice_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     transcript = await transcribe(bytes(audio_bytes), filename="voice.ogg")
     logger.info("[telegram] transcript: %s", transcript)
 
-    result = await process_message(transcript, channel="telegram", user_email=user_email)
+    result = await process_message(transcript, channel="telegram", user_email=user_email, user_id=f"telegram_{uid}")
 
     reply = result.get("response_text", "Sorry, something went wrong.")
     skill = result.get("selected_skill", "")

@@ -11,6 +11,7 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
 from graph.state import AgentState
 from skills.registry import get_skill
+from services.memory import user_fact_store
 
 logger = logging.getLogger("skill-executor")
 
@@ -84,11 +85,25 @@ async def skill_executor(state: AgentState) -> dict:
         if user_email:
             system_prompt += f"\n\nUser context: The user's own email address is {user_email}"
 
+    # Inject long-term memory (user facts) into system prompt
+    user_id = state.get("user_id", "")
+    if user_id:
+        facts = user_fact_store.get_facts(user_id)
+        if facts:
+            facts_text = "\n".join(f"{i+1}. {f}" for i, f in enumerate(facts))
+            system_prompt += f"\n\nKnown user information:\n{facts_text}"
+
     # Step 1: LLM extracts structured args
     messages = [
         SystemMessage(content=system_prompt),
-        HumanMessage(content=transcript),
     ]
+
+    # Inject conversation history for context-aware arg extraction
+    history = state.get("messages", [])
+    if history:
+        messages.extend(history)
+
+    messages.append(HumanMessage(content=transcript))
 
     response = await _llm.ainvoke(messages)
     llm_output = response.content.strip()
